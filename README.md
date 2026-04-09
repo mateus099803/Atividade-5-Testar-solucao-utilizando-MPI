@@ -1,61 +1,53 @@
-# Relatório de Avaliação de Similaridade de Perguntas com MPI
+# Relatório – Avaliação de Similaridade de Perguntas com MPI
 
 **Disciplina:** Computação Paralela e Distribuída
-**Aluno(s):** _(preencher)_
-**Turma:** _(preencher)_
-**Professor:** _(preencher)_
+**Aluno(s):** Mateus Recalde da Fonseca Cotrim
+**Professor:** Rafael Marconi Ramos
 **Data:** 08/04/2026
 
 ---
 
 # 1. Descrição do Problema
 
-O programa implementa um avaliador de similaridade entre pares de perguntas utilizando o dataset Quora Question Pairs. O algoritmo percorre todas as combinações possíveis de pares de perguntas (i, j) com i < j — ou seja, a metade superior da matriz de similaridade — e calcula a similaridade cosseno entre os vetores TF-IDF de cada par.
+O programa desenvolvido tem como objetivo encontrar pares de perguntas similares dentro de um dataset do Quora (Quora Question Pairs). Para isso, ele compara todas as combinações possíveis de pares de perguntas usando similaridade cosseno com vetores TF-IDF.
 
-**Qual é o objetivo do programa?**
-Identificar os pares de perguntas semanticamente mais similares dentro de um conjunto de 5.000 perguntas extraídas do dataset, retornando um ranking com os 20 pares de maior similaridade.
+O algoritmo basicamente percorre a metade superior de uma matriz de comparações (i, j) onde i < j, calculando a similaridade entre cada par. Com 5.000 perguntas, isso resulta em cerca de 12,5 milhões de comparações, o que torna o problema computacionalmente pesado e um bom candidato para paralelização.
 
-**Qual o volume de dados processado?**
-5.000 perguntas, resultando em 12.497.500 comparações par a par (combinações C(5000, 2)).
-
-**Qual algoritmo foi utilizado?**
-Similaridade cosseno sobre representações TF-IDF das perguntas. A paralelização se dá pela divisão das linhas `i` da matriz triangular entre os processos MPI, onde cada processo fica responsável por um intervalo contíguo de índices `i` e compara cada linha com todas as colunas `j > i`.
-
-**Qual a complexidade aproximada do algoritmo?**
-O(n²) no número de comparações, onde n = 5.000. O cálculo de similaridade cosseno é O(d) por par, onde d é a dimensão dos vetores TF-IDF.
-
-**Qual o objetivo da paralelização?**
-Distribuir a carga das 12,5 milhões de comparações entre múltiplos processos MPI para reduzir o tempo total de execução, aproveitando os núcleos físicos disponíveis no processador.
+- **Objetivo do programa:** encontrar os 20 pares de perguntas mais similares entre si dentro do conjunto de dados.
+- **Volume de dados:** 5.000 perguntas → C(5000, 2) = 12.497.500 comparações.
+- **Algoritmo utilizado:** similaridade cosseno sobre vetores TF-IDF. A paralelização divide as linhas `i` da matriz triangular entre os processos MPI.
+- **Complexidade aproximada:** O(n²), onde n = 5.000.
+- **Objetivo da paralelização:** dividir o trabalho das comparações entre múltiplos processos para reduzir o tempo total de execução.
 
 ---
 
 # 2. Ambiente Experimental
 
-| Item                        | Descrição                                              |
-| --------------------------- | ------------------------------------------------------ |
-| Processador                 | Intel Core i5-12500 (12ª Geração), 3,00 GHz base       |
-| Número de núcleos           | 6 núcleos físicos / 12 processadores lógicos (Hyper-Threading) |
-| Cache L1 / L2 / L3          | 480 KB / 7,5 MB / 18,0 MB                             |
-| Memória RAM                 | 16,0 GB DDR4 4800 MT/s (1 módulo DIMM, 1 de 2 slots)  |
-| Armazenamento               | SSD NVMe ADATA 512 GB (SM2P41C3Q), tempo de resposta 1,6 ms |
-| Sistema Operacional         | Windows 11                                             |
-| Linguagem utilizada         | Python 3.x                                             |
-| Biblioteca de paralelização | MPI (mpi4py)                                           |
-| Compilador / Versão         | Python (interpretado) + mpiexec                        |
+Os testes foram realizados na seguinte máquina:
+
+| Item                        | Descrição                                    |
+| --------------------------- | -------------------------------------------- |
+| Processador                 | Intel Core i5-12500 (12ª Geração)            |
+| Número de núcleos           | 6 núcleos físicos / 12 processadores lógicos |
+| Cache L1 / L2 / L3          | 480 KB / 7,5 MB / 18,0 MB                    |
+| Memória RAM                 | 16,0 GB DDR4 4800 MT/s                       |
+| Armazenamento               | SSD NVMe ADATA 512 GB                        |
+| Sistema Operacional         | Windows 11                                   |
+| Linguagem utilizada         | Python 3.x                                   |
+| Biblioteca de paralelização | MPI (mpi4py)                                 |
+| Compilador / Versão         | Python (interpretado) + mpiexec              |
 
 ---
 
 # 3. Metodologia de Testes
 
-O tempo de execução foi medido internamente pelo próprio script `avaliador_mpi.py`, que registra o tempo total do processo principal (Processo 0) desde o início da computação até a consolidação dos resultados via `MPI_Gather` ou equivalente.
+O tempo de execução foi medido pelo próprio script `avaliador_mpi.py`, que imprime o tempo total ao final de cada execução no formato `Tempo total MPI: X.XX segundos`. Esse tempo é registrado pelo processo de rank 0, que é responsável por consolidar os resultados dos demais processos.
 
-Os experimentos foram executados com uma única rodada por configuração, utilizando os tempos reportados diretamente pelo programa. O tamanho da entrada foi fixado em **5.000 perguntas** para todas as execuções.
+Para cada configuração foi realizada uma execução, utilizando sempre as mesmas 5.000 perguntas como entrada. Os testes foram feitos numa máquina de uso pessoal, sem nenhum isolamento especial de carga do sistema.
 
 ### Configurações testadas
 
-Os experimentos foram realizados nas seguintes configurações de processos MPI:
-
-- 1 processo (versão serial)
+- 1 processo (serial)
 - 2 processos
 - 4 processos
 - 8 processos
@@ -63,14 +55,16 @@ Os experimentos foram realizados nas seguintes configurações de processos MPI:
 
 ### Procedimento experimental
 
-- **Número de execuções:** 1 execução por configuração (tempo único, não média)
-- **Tamanho da entrada:** 5.000 perguntas — 12.497.500 comparações
-- **Condições de execução:** Windows 11, máquina pessoal, sem isolamento de carga
-- **Medição:** Tempo total reportado pelo script ao final da execução (`Tempo total MPI: X.XX segundos`)
+- **Execuções por configuração:** 1 (tempo único, sem cálculo de média)
+- **Entrada:** 5.000 perguntas — 12.497.500 comparações no total
+- **Ambiente:** Windows 11, máquina pessoal, com outros processos do sistema em execução
+- **Medição:** tempo reportado diretamente pelo script ao final de cada execução
 
 ---
 
 # 4. Resultados Experimentais
+
+A tabela abaixo mostra os tempos de execução obtidos para cada configuração:
 
 | Nº Processos MPI | Tempo de Execução (s) |
 | ---------------- | --------------------- |
@@ -84,6 +78,8 @@ Os experimentos foram realizados nas seguintes configurações de processos MPI:
 
 # 5. Cálculo de Speedup e Eficiência
 
+Para analisar o desempenho da paralelização, foram calculados o speedup e a eficiência de cada configuração usando as fórmulas abaixo.
+
 ### Speedup
 
 ```
@@ -92,7 +88,7 @@ Speedup(p) = T(1) / T(p)
 
 Onde:
 
-- **T(1)** = tempo da execução serial (1 processo)
+- **T(1)** = tempo da execução com 1 processo (serial)
 - **T(p)** = tempo com p processos
 
 ### Eficiência
@@ -109,15 +105,15 @@ Onde:
 
 # 6. Tabela de Resultados
 
-T(1) = 32,84 s
+Considerando T(1) = 32,84 s:
 
-| Processos MPI | Tempo (s) | Speedup          | Eficiência        |
-| ------------- | --------- | ---------------- | ----------------- |
-| 1             | 32,84     | 1,00             | 100,00%           |
-| 2             | 24,43     | 1,34             | 67,10%            |
-| 4             | 16,58     | 1,98             | 49,50%            |
-| 8             | 12,21     | 2,69             | 33,60%            |
-| 12            | 11,25     | 2,92             | 24,30%            |
+| Processos MPI | Tempo (s) | Speedup | Eficiência |
+| ------------- | --------- | ------- | ---------- |
+| 1             | 32,84     | 1,00    | 100,00%    |
+| 2             | 24,43     | 1,34    | 67,10%     |
+| 4             | 16,58     | 1,98    | 49,50%     |
+| 8             | 12,21     | 2,69    | 33,60%     |
+| 12            | 11,25     | 2,92    | 24,30%     |
 
 ---
 
@@ -142,37 +138,43 @@ T(1) = 32,84 s
 # 10. Análise dos Resultados
 
 **O speedup obtido foi próximo do ideal?**
-Não. O speedup máximo obtido com 12 processos foi de apenas 2,92, enquanto o ideal seria 12. Isso indica que a maior parte do trabalho não foi paralelizável de forma eficiente, ou que o overhead de comunicação e a divisão desigual de carga limitaram os ganhos.
+
+Não. Com 12 processos o speedup foi de apenas 2,92, bem longe do ideal que seria 12. Isso mostra que a aplicação não consegue aproveitar totalmente o paralelismo disponível, seja pelo desbalanceamento de carga ou pelo overhead de comunicação entre os processos.
 
 **A aplicação apresentou escalabilidade?**
-Parcialmente. Há ganho de desempenho com o aumento de processos, mas os retornos decrescem rapidamente. O salto de 1 para 4 processos é o mais expressivo (tempo cai de 32,84 s para 16,58 s). De 8 para 12 processos, o ganho é marginal (12,21 s → 11,25 s), evidenciando saturação.
+
+Parcialmente. Existe melhora de desempenho conforme o número de processos aumenta, mas os ganhos vão diminuindo. O maior salto acontece de 1 para 4 processos (tempo cai de 32,84 s para 16,58 s). Depois disso, de 8 para 12 processos, a diferença é bem pequena (12,21 s → 11,25 s), o que indica que a aplicação já está chegando num ponto de saturação.
 
 **Em qual ponto a eficiência começou a cair?**
-Já a partir de 2 processos a eficiência caiu para 0,67 (abaixo do ideal 1,0), com queda acentuada a cada configuração. A partir de 8 processos, a eficiência já está abaixo de 0,34, tornando o acréscimo de processos pouco vantajoso.
 
-**O número de threads ultrapassa o número de núcleos físicos da máquina?**
-Sim, a partir de 8 processos. A máquina possui **6 núcleos físicos** e **12 processadores lógicos** via Hyper-Threading. As configurações de 8 e 12 processos já ultrapassam o número de núcleos físicos, compartilhando núcleos entre processos lógicos. A configuração de 12 processos ocupa todos os processadores lógicos disponíveis, o que explica o ganho marginal entre 8 e 12 processos — os núcleos físicos já estavam saturados e o Hyper-Threading não oferece o mesmo desempenho que núcleos dedicados para cargas computacionais intensas.
+A eficiência já começa a cair a partir de 2 processos, indo de 100% para 67,10%. Conforme se aumenta o número de processos, ela cai cada vez mais, chegando a apenas 24,30% com 12 processos. Isso significa que boa parte dos recursos está sendo desperdiçada com overhead.
+
+**O número de processos ultrapassa o número de núcleos físicos da máquina?**
+
+Sim, a partir de 8 processos. O processador tem 6 núcleos físicos e 12 lógicos via Hyper-Threading. Então nas configurações de 8 e 12 processos, mais de um processo acaba compartilhando o mesmo núcleo físico. Com 12 processos, todos os processadores lógicos estão ocupados, o que explica o ganho tão pequeno em relação a 8 processos — o Hyper-Threading ajuda, mas não é a mesma coisa que ter núcleos físicos independentes, especialmente para cargas de processamento intenso como essa.
 
 **Houve overhead de paralelização?**
-Sim. A distribuição das linhas `i` entre os processos é feita de forma que o Processo 0 recebe a maior fatia (linhas iniciais, que possuem mais comparações por linha), enquanto os processos finais recebem fatias menores. Isso gera **desbalanceamento de carga**: por exemplo, com 2 processos, o Processo 0 realiza 9.373.750 comparações enquanto o Processo 1 realiza apenas 3.123.750. O tempo total é determinado pelo processo mais lento (Processo 0), reduzindo o ganho efetivo.
 
-**Causas identificadas para perda de desempenho:**
-- **Desbalanceamento de carga:** a divisão linear dos índices `i` não distribui o trabalho igualmente, pois linhas com índices menores possuem mais comparações (`j` de i+1 até n-1).
-- **Overhead de comunicação MPI:** coleta e merge dos top-20 pares de cada processo no rank 0.
-- **Carregamento e vetorização do dataset:** cada processo carrega e processa o dataset de forma independente (sem paralelismo nessa etapa), o que pode ser um gargalo inicial.
-- **GIL e overhead do Python:** o interpretador Python introduz overhead em comparação a implementações em C/C++.
+Sim. Um problema bastante visível nos logs é o desbalanceamento de carga. A divisão do trabalho é feita por número de linhas `i`, mas linhas com índices menores têm mais comparações para fazer (porque `j` vai de i+1 até n-1). Com 2 processos, por exemplo, o Processo 0 faz 9.373.750 comparações enquanto o Processo 1 faz apenas 3.123.750. Como o tempo total depende do processo mais lento, grande parte do ganho teórico é perdida.
+
+Outras causas identificadas para a perda de desempenho foram:
+
+- **Desbalanceamento de carga:** divisão desigual das comparações entre os processos.
+- **Overhead do MPI:** comunicação e coleta dos top-20 pares de cada processo no rank 0.
+- **Carregamento do dataset:** cada processo carrega e processa o dataset de forma independente, o que é redundante.
+- **Overhead do Python:** o interpretador em si é mais lento que linguagens compiladas, o que amplifica qualquer ineficiência.
 
 ---
 
 # 11. Conclusão
 
-O experimento demonstrou que a paralelização via MPI trouxe ganho real de desempenho — o tempo caiu de 32,84 s para 11,25 s ao passar de 1 para 12 processos, uma redução de aproximadamente 66%. No entanto, o speedup obtido (2,92×) ficou muito abaixo do ideal teórico (12×), evidenciando que a aplicação não escala linearmente.
+No geral, a paralelização com MPI trouxe um ganho real de desempenho. O tempo caiu de 32,84 s para 11,25 s ao passar de 1 para 12 processos, uma redução de cerca de 66%. Porém, o speedup de 2,92× ficou muito abaixo do ideal teórico de 12×, o que mostra que a implementação atual tem bastante espaço para melhorias.
 
-O **melhor custo-benefício** foi observado na configuração de 4 processos, onde o speedup de ~2× foi atingido com eficiência de 49% — um equilíbrio razoável entre ganho de desempenho e utilização dos recursos.
+A configuração de 4 processos foi a que apresentou o melhor equilíbrio entre ganho de desempenho e eficiência, atingindo um speedup de ~2× com 49,50% de eficiência. A partir daí os retornos vão caindo bastante.
 
-As principais limitações são o **desbalanceamento de carga** na divisão dos índices triangulares e os overheads inerentes ao Python e à comunicação MPI. Melhorias possíveis incluem:
+Para melhorar os resultados em trabalhos futuros, algumas mudanças que poderiam ser feitas são:
 
-- Distribuição balanceada da carga considerando o número real de comparações por processo (divisão por número de operações, não por número de linhas);
-- Pré-computação e broadcast dos vetores TF-IDF apenas uma vez, no rank 0;
-- Migração para implementação em C com mpi4py apenas para orquestração, ou uso de NumPy vetorizado para o cálculo de similaridade;
-- Avaliação de abordagens híbridas MPI + OpenMP para aproveitar melhor os núcleos físicos disponíveis.
+- Dividir a carga pelo número real de comparações e não pelo número de linhas, para balancear melhor o trabalho entre os processos.
+- Fazer o broadcast dos vetores TF-IDF a partir do rank 0, evitando que cada processo recalcule tudo do zero.
+- Usar NumPy de forma mais vetorizada para o cálculo de similaridade, reduzindo o overhead do Python.
+- Explorar uma abordagem híbrida com MPI + OpenMP para aproveitar melhor os núcleos físicos disponíveis.
