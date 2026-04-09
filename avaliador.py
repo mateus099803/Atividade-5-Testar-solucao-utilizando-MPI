@@ -65,7 +65,7 @@ def preparar_perguntas(df, coluna, limite):
 def main():
     arquivo = "nlp_features_train.csv"      # arquivo do dataset Quora Question Pairs
     coluna = "question1"       # pode trocar para question2
-    limite = 20000              # ajuste conforme a máquina
+    limite = 5000              # ajuste conforme a máquina
     top_k = 20                 # quantidade de pares mais similares
 
     print("Carregando dataset...")
