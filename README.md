@@ -1,8 +1,9 @@
 # Relatório de Avaliação de Similaridade de Perguntas com MPI
 
 **Disciplina:** Computação Paralela e Distribuída
-**Aluno(s):** Mateus Recalde da Fonseca Cotrim
-**Professor:** Rafael Marconi Ramos 
+**Aluno(s):** _(preencher)_
+**Turma:** _(preencher)_
+**Professor:** _(preencher)_
 **Data:** 08/04/2026
 
 ---
@@ -30,15 +31,17 @@ Distribuir a carga das 12,5 milhões de comparações entre múltiplos processos
 
 # 2. Ambiente Experimental
 
-| Item                        | Descrição                          |
-| --------------------------- | ---------------------------------- |
-| Processador                 | Intel Core i5-13500                |
-| Número de núcleos           | 14 núcleos (6P + 8E) / 20 threads  |
-| Memória RAM                 | 16 GB DDR4 4600 MT/s               |
-| Sistema Operacional         | Windows 11                         |
-| Linguagem utilizada         | Python 3.x                         |
-| Biblioteca de paralelização | MPI (mpi4py)                       |
-| Compilador / Versão         | Python (interpretado) + mpiexec    |
+| Item                        | Descrição                                              |
+| --------------------------- | ------------------------------------------------------ |
+| Processador                 | Intel Core i5-12500 (12ª Geração), 3,00 GHz base       |
+| Número de núcleos           | 6 núcleos físicos / 12 processadores lógicos (Hyper-Threading) |
+| Cache L1 / L2 / L3          | 480 KB / 7,5 MB / 18,0 MB                             |
+| Memória RAM                 | 16,0 GB DDR4 4800 MT/s (1 módulo DIMM, 1 de 2 slots)  |
+| Armazenamento               | SSD NVMe ADATA 512 GB (SM2P41C3Q), tempo de resposta 1,6 ms |
+| Sistema Operacional         | Windows 11                                             |
+| Linguagem utilizada         | Python 3.x                                             |
+| Biblioteca de paralelização | MPI (mpi4py)                                           |
+| Compilador / Versão         | Python (interpretado) + mpiexec                        |
 
 ---
 
@@ -148,7 +151,7 @@ Parcialmente. Há ganho de desempenho com o aumento de processos, mas os retorno
 Já a partir de 2 processos a eficiência caiu para 0,67 (abaixo do ideal 1,0), com queda acentuada a cada configuração. A partir de 8 processos, a eficiência já está abaixo de 0,34, tornando o acréscimo de processos pouco vantajoso.
 
 **O número de threads ultrapassa o número de núcleos físicos da máquina?**
-O processador i5-13500 possui 14 núcleos físicos (6P + 8E). As configurações testadas (1, 2, 4, 8, 12) ficam dentro do número de núcleos físicos disponíveis. A configuração de 12 processos, portanto, ainda pode aproveitar núcleos distintos sem hyperthreading obrigatório.
+Sim, a partir de 8 processos. A máquina possui **6 núcleos físicos** e **12 processadores lógicos** via Hyper-Threading. As configurações de 8 e 12 processos já ultrapassam o número de núcleos físicos, compartilhando núcleos entre processos lógicos. A configuração de 12 processos ocupa todos os processadores lógicos disponíveis, o que explica o ganho marginal entre 8 e 12 processos — os núcleos físicos já estavam saturados e o Hyper-Threading não oferece o mesmo desempenho que núcleos dedicados para cargas computacionais intensas.
 
 **Houve overhead de paralelização?**
 Sim. A distribuição das linhas `i` entre os processos é feita de forma que o Processo 0 recebe a maior fatia (linhas iniciais, que possuem mais comparações por linha), enquanto os processos finais recebem fatias menores. Isso gera **desbalanceamento de carga**: por exemplo, com 2 processos, o Processo 0 realiza 9.373.750 comparações enquanto o Processo 1 realiza apenas 3.123.750. O tempo total é determinado pelo processo mais lento (Processo 0), reduzindo o ganho efetivo.
